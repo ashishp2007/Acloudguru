@@ -1,80 +1,88 @@
 Resources:
-  ModaCustomer:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-0005e0cfe09cc9050
-      SecurityGroupIds:
-        - !Ref ModaSGPublic
-      SubnetId: !Ref ModaSubnetPublic
-      Tags:
-        - Key: Name
-          Value: !Join [" ", [Customer, Instance, !Ref AWS::Region ]]
-  ModaAdmin:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-0005e0cfe09cc9050
-      SecurityGroupIds:
-        - !Ref ModaSGPrivate
-      SubnetId: !Ref ModaSubnetPrivate
-      Tags:
-        - Key: Name
-          Value: !Join [" ", [Admin, Instance, !Ref AWS::Region ]]
   ModaVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsHostnames: true
       EnableDnsSupport: true
-      Tags:
+      Tags: 
         - Key: Name
-          Value: ModaVpc
+          Value: VPC
   ModaSGPublic:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref ModaVPC
-      GroupDescription: Enable SSH via port 80 and 22 for inbound ModaCustomer 
+      GroupDescription: Enable HTTP and SSH from port 80 22
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+          FromPort 22
+          ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+          ToPort: 80 
       Tags:
         - Key: Name
-          Value: PublicSecurityGroup     
+          Value: !Join [" ", [Public, SecurityGroup, !Ref AWS::Region ] ]     
   ModaSGPrivate:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref ModaVPC
-      GroupDescription: Enable SSH via port 80 and 22 for inbound ModaCustomer 
+      GroupDescription: Enable HTTP and SSH from port 80 22
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 22
+          FromPort 22
           ToPort: 22
-          CidrIp: !GetAtt ModaSubnetPublic.CidrBlock
+          CidrIp: !GetAtt ModaPublicSubnet.CidrBlock
       Tags:
         - Key: Name
-          Value: PrivateSecurityGroup     
-  ModaSubnetPublic:
+          Value: !Join [" ", [Private, SecurityGroup, !Ref AWS::Region ] ]    
+
+  ModaPublicSubnet:
     Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref ModaVPC
+    Properties: 
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: !Select [0, !GetAZs ]
-      Tags:
-        - Key: Name
-          Value: PublicSubnet 
-  ModaSubnetPrivate:
-    Type: AWS::EC2::Subnet
-    Properties:
       VpcId: !Ref ModaVPC
+      AvailabilityZone: !Select (0, !GetAZs )
+      Tags: 
+        - Key: Name
+          Value: PublicSubnet
+  ModaPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties: 
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [0, !GetAZs ]
+      VpcId: !Ref ModaVPC
+      AvailabilityZone: !Select (0, !GetAZs )
+      Tags: 
+        - Key: Name
+          Value: PublicSubnet
+  AdminInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: Moda
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      SecurityGroupIds:
+        - !Ref ModaSGPrivate
+      SubnetId: !Ref ModaPrivateSubnet
       Tags:
         - Key: Name
-          Value: PrivateSubnet
+          Value: !Join [" ", [Admin, Instance, Ref! AWS::Region ] ] 
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0 
+  CustomerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: Moda
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      SecurityGroupIds:
+        - !Ref ModaSGPublic
+      SubnetId: !Ref ModaPublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Customer, Instance, Ref! AWS::Region ] ] 
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0 
