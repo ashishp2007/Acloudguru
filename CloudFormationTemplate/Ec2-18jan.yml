@@ -1,0 +1,41 @@
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      SecurityGroupIds:
+        - !Ref 'MySecurityGroup'
+      SubnetId: !Ref 'MySubnet'
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [ !Ref AWS::Region ] ]
+  MyVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value:  !Join ['', [!Ref "AWS::StackName", "-VPC", "" ]]
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVpc
+      CidrBlock: 10.1.0.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        VpcId: !Ref MyVpc
+        GroupDescription: Enable SSH via port 80 and 22
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: '22'
+            ToPort: '22'
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: '80'
+            ToPort: '80'
+            CidrIp: 0.0.0.0/0

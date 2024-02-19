@@ -1,0 +1,37 @@
+Resources:
+  ModaInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:  ami-0005e0cfe09cc9050
+      SecurityGroupIds:
+        - !Ref 'ModaSecurityGroup'
+      SubnetId: !Ref 'ModaSubnet'
+
+  ModaVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+  ModaSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ModaVpc
+      CidrBlock: 10.1.0.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ] 
+  ModaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Enable SSH via port 22 
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref ModaVpc
+        

@@ -1,0 +1,113 @@
+Resources:
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      ENableDNsSupport: true
+      Tags: 
+        - Key: Name
+          Value: MyVpc
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  MyAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC
+      InternetGatewayId: !Ref MyInternetGateway
+  MyRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+  MyInternetRoute:
+    Type: AWS::EC2::Route 
+    DependsOn: MyAttachGateway
+    Properties:
+      RouteTableId: !Ref MyRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+  MyNetworkACL:
+    Type: AWS::EC2::NetworkACl
+    Properties:
+      VpcId: !Ref MyVPC
+
+  ModaSGPublic:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref MyVPC 
+      GroupDescription: Enable SSH HTTP from port 80 and 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80 
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Public, SecurityGroup ] ] 
+
+  MySGPrivate:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref MyVPC 
+      GroupDescription: Enable SSH HTTP from port 80 and 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: !GetAtt MySubnetPublic.CidrBlock
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Private, SecurityGroup ]] 
+     
+  MySubnetPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      VpcId: !Ref MyVPC
+      AvailabilityZone: !Select (0, !GetAZs )
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Public, Subnet ]] 
+ 
+  MySubnetPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref MyVPC
+      AvailabilityZone: !Select [0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Private, SecurityGroup ]] 
+ 
+  AdminInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      KeyName: Moda
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      SubnetId: !Ref MySubnetPrivate
+      SecurityGroupIds:
+        - !Ref MySGPrivate
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Admin, Instance, Ref! AWS::Region ] ] 
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0 
+  CustomerInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      KeyName: Moda
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      SubnetId: !Ref MySubnetPublic
+      SecurityGroupIds: 
+        - !Ref ModaSGPublic
+      Tags:
+        - Key: Name
+          Value: !Join [" ", [Customer, Instance, !Ref AWS::Region ]]
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0      
+      

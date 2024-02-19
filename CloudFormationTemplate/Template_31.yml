@@ -1,0 +1,89 @@
+Resources:
+  ModaVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  ModaInternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref ModaVpc
+      InternetGatewayId: !Ref ModaInternetGateway
+
+  ModaRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ModaVpc
+
+  InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref ModaRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref ModaInternetGateway
+
+  ModaSubnetPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ModaVpc
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  ModaSubnetPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ModaVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  ModaSecurityGroupPublic:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound HTTP and SSH traffic for modx_customer
+      VpcId: !Ref ModaVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  ModaSecurityGroupPrivate:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound SSH traffic for modx_admin
+      VpcId: !Ref ModaVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !GetAtt ModaSubnetPublic.CidrBlock
+
+  ModxCustomerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      KeyName: YourKeyPairName
+      SubnetId: !Ref ModaSubnetPublic
+      SecurityGroupIds:
+        - !Ref ModaSecurityGroupPublic
+
+  ModxAdminInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0005e0cfe09cc9050
+      KeyName: YourKeyPairName
+      SubnetId: !Ref ModaSubnetPrivate
+      SecurityGroupIds:
+        - !Ref ModaSecurityGroupPrivate

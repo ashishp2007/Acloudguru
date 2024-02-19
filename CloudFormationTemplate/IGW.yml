@@ -1,0 +1,25 @@
+Resources:
+  MyVPC:
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  MyAttachGateway:
+    Type: AWS::EC2::AttachGateway
+    Properties:
+      InternetGatewayId: !Ref MyInternetGateway
+      VpcId: !Ref MyVPC
+  MyRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      - !Ref MyVPC
+  MyInternetRoute:  
+    Type: AWS::EC2::Route
+    DependsOn: MyAttachGateway
+    Properties:
+      RouteTableId: !Ref MyRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+      
+  MyNetworkACl:
+  Type: AWS::EC2::NetworkACl
+  Properties:
+    - Ref MyVPC
