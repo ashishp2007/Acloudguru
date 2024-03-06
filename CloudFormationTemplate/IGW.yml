@@ -10,7 +10,7 @@ Resources:
   MyRouteTablePublic:
     Type: AWS::EC2::RouteTable
     Properties:
-      - !Ref MyVPC
+      VpcId: !Ref MyVPC
   MyInternetRoute:  
     Type: AWS::EC2::Route
     DependsOn: MyAttachGateway
